@@ -6,6 +6,13 @@ from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
 from pyspark.sql import SparkSession
 import json
+import numpy as np
+
+from pyspark.ml.feature import HashingTF, IDF, Tokenizer
+from pyspark.ml.feature import CountVectorizer
+
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
 
 #from sklearn import preprocessing
 
@@ -46,6 +53,11 @@ def readMyStream(rdd) :
   df = label_encode(df,"feature4","district")
   #drop the categorical cols
   df = df.drop(*categorical)
+
+
+  df = tokenize(df,"feature6","Address")
+  df = df.drop("feature6")
+
   return df
 
 
@@ -56,20 +68,28 @@ def x_y(rdd):
     print("DataFrame:")
     df.show()
 
-    #x_col = ['feature0','feature3','feature4','feature6','feature7','feature8']
-    #X = data = df.select([col for col in x_col])
-    #y = df.select('feature2')
-    #print("Train and test are:")
-    #X.show()
-    #y.show()
-    #return(X,y)
+    
 
 
-#label encoding the categorical variables
+
 def label_encode(df,feature,output_feature):
   encoder = StringIndexer(inputCol=feature,outputCol=output_feature)
   df = encoder.fit(df).transform(df)
   return df
+
+def tokenize(df,feature,output_feature):
+  tokenizer = Tokenizer(inputCol=feature, outputCol="words")
+  df = tokenizer.transform(df)
+
+  hashingTF = HashingTF(inputCol="words", outputCol=output_feature)
+  df = hashingTF.transform(df)
+
+  df = df.drop("words")
+  return df
+
+
+#def naive_bayes(X,y):
+  
 
 #createing a spark context
 sc = SparkContext(appName="crime")
