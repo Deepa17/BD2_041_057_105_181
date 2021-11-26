@@ -65,12 +65,25 @@ def readMyStream(rdd) :
 def x_y(rdd):
   if not rdd.isEmpty():
     df = readMyStream(rdd)
-    print("DataFrame:")
-    df.show()
+    #print("DataFrame:")
+    #df.show()
 
+    x_col = ['feature7','feature8','day','district','Address']
+    X = data = df.select([col for col in x_col])
+    y = df.select('category')
+    X = np.array(X.collect())
+    y = np.array(y.collect())
+    #print("Train and test are:")
     
+    X_train, X_test, y_train, y_test=test_train(X,y)
+    print(X_train)
+    print(y_test)
+    #return(X,y)
 
-
+def test_train(X,y):
+  X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
+  return(X_train, X_test, y_train, y_test)
+#label encoding the categorical variables
 
 def label_encode(df,feature,output_feature):
   encoder = StringIndexer(inputCol=feature,outputCol=output_feature)
