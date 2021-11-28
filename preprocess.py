@@ -67,7 +67,7 @@ def x_y(rdd):
     df = readMyStream(rdd)
     #print("DataFrame:")
     #df.show()
-
+    
     x_col = ['feature7','feature8','day','district','Address']
     X = data = df.select([col for col in x_col])
     y = df.select('category')
@@ -85,6 +85,7 @@ def test_train(X,y):
   return(X_train, X_test, y_train, y_test)
 #label encoding the categorical variables
 
+
 def label_encode(df,feature,output_feature):
   encoder = StringIndexer(inputCol=feature,outputCol=output_feature)
   df = encoder.fit(df).transform(df)
@@ -101,7 +102,16 @@ def tokenize(df,feature,output_feature):
   return df
 
 
-#def naive_bayes(X,y):
+#to return the metrics of the model 
+def metrics(y_pred,y_true):
+  from sklearn.metrics import accuracy_score
+  from sklearn.metrics import classification_report
+
+  target = list(np.unique(y_true))
+  print(target)
+  print("Accuracy: ",accuracy_score(y_pred,y_true))
+  print("Classification_report:")
+  print(classification_report(y_true,y_pred,labels=target))
   
 
 #createing a spark context
