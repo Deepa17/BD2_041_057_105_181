@@ -7,6 +7,7 @@ from pyspark.streaming import StreamingContext
 from pyspark.sql import SparkSession
 import json
 import numpy as np
+import pickle
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -66,6 +67,13 @@ days = {'Wednesday':0,'Tuesday':1,'Friday':2,'Thursday':3,
 nb = GaussianNB()
 sgd = linear_model.SGDClassifier()
 
+def save_model():
+  filename = 'naive_bayes.sav'
+  pickle.dump(nb, open(filename, 'wb'))
+  filename = 'sgd.sav'
+  pickle.dump(nb, open(filename, 'wb'))
+
+
 #splitting the data into test train set
 def test_train(X,y):
   X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
@@ -79,6 +87,7 @@ def naive_bayes(X_train, X_test, y_train, y_test,classes,nb):
   print("Naive Bayes:")
   acc = metrics(y_pred,y_test,classes)
   return acc
+
 
 def stgd(X_train, X_test, y_train, y_test,classes,sgd):
   sgd.partial_fit(X_train,y_train,classes = classes)
@@ -137,13 +146,14 @@ def model_train(rdd):
     classes = [str(i) for i in range(39)]
     #print("classes: ",classes)
     X_train, X_test, y_train, y_test=test_train(X,y)
-    #acc_str = ""
+    
     nb_acc = naive_bayes(X_train, X_test, y_train, y_test,classes,nb)
     stgd_acc = stgd(X_train, X_test, y_train, y_test,classes,sgd)
-    #acc_str = nb_acc+","+stgd_acc
+    
     file = open('accuracy.csv','a')
     file.write("\n"+str(nb_acc)+","+str(stgd_acc))
     file.close()
+    save_model()
 
 #creating a spark context
 sc = SparkContext(appName="crime")
@@ -158,7 +168,8 @@ lines.foreachRDD( lambda rdd: model_train(rdd) )
 ssc.start()             
 
 #wait till over
-ssc.awaitTermination()
+ssc.awaitTermination(timeout=264000)
+
 ssc.stop()
 
 
