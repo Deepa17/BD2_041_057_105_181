@@ -13,15 +13,16 @@ from pyspark.sql.functions import hour, month, year
 
 from pyspark.sql.functions import col , udf
 
-from pyspark.ml.feature import HashingTF, IDF, Tokenizer
-from pyspark.ml.feature import CountVectorizer
+#from pyspark.ml.feature import HashingTF, IDF, Tokenizer
+#from pyspark.ml.feature import CountVectorizer
 
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
+from sklearn import linear_model
 
 #from sklearn import preprocessing
 
-from pyspark.ml.feature import StringIndexer
+#from pyspark.ml.feature import StringIndexer
 
 #schema of the json file(note: the field names have to be proper)
 schema = StructType([
@@ -57,6 +58,9 @@ days = {'Wednesday':0,'Tuesday':1,'Friday':2,'Thursday':3,
 'Saturday':4,'Monday':5,'Sunday':6}
 
 
+nb = GaussianNB()
+sgd = linear_model.SGDClassifier()
+
 #splitting the data into test train set
 def test_train(X,y):
   X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
@@ -64,11 +68,16 @@ def test_train(X,y):
 
 
 #nb classifier
-def naive_bayes(X_train, X_test, y_train, y_test,classes):
-  from sklearn.naive_bayes import GaussianNB
-  nb = GaussianNB()
+def naive_bayes(X_train, X_test, y_train, y_test,classes,nb):
   nb.partial_fit(X_train,y_train,classes = classes)
   y_pred = nb.predict(X_test)
+  print("Naive Bayes:")
+  metrics(y_pred,y_test,classes)
+
+def stgd(X_train, X_test, y_train, y_test,classes,sgd):
+  sgd.partial_fit(X_train,y_train,classes = classes)
+  y_pred = nb.predict(X_test)
+  print("SGD Classifier:")
   metrics(y_pred,y_test,classes)
 
 #to return the metrics of the model 
@@ -95,10 +104,6 @@ def readMyStream(rdd) :
   day_func = udf(lambda row : days.get(row,row))
   df = df.withColumn("feature3", day_func(col("feature3")))
 
-  
-  cols = df.columns
-  
-  
   df = df.withColumn("timestamp",to_timestamp(df.feature0))
   df=df.withColumn("Hour",hour(df.timestamp)).withColumn("Month",month(df.timestamp)).withColumn("Year",year(df.timestamp))
   return df
@@ -108,7 +113,7 @@ def readMyStream(rdd) :
 def x_y(rdd):
   
   df = readMyStream(rdd)
-  #print("DataFrame:")
+  print("DataFrame:")
   df.show()
 
   x_col = ['feature3','feature4','feature7','feature8','Hour','Month','Year']
@@ -116,21 +121,16 @@ def x_y(rdd):
   y = df.select('feature1')
   X = np.asarray(X.collect())
   y = np.asarray(y.collect())
-  #li = (np.unique(y))
-  #for i in li:
-  #  print(type(i))
-  #print(X)
-  #print(y)
-  print(np.unique(y))
   return(X,y)
 
 def model_train(rdd):
   if not rdd.isEmpty():
     X,y = x_y(rdd)
     classes = [str(i) for i in range(39)]
-    print("classes: ",classes)
+    #print("classes: ",classes)
     X_train, X_test, y_train, y_test=test_train(X,y)
-    naive_bayes(X_train, X_test, y_train, y_test,classes)
+    naive_bayes(X_train, X_test, y_train, y_test,classes,nb)
+    stgd(X_train, X_test, y_train, y_test,classes,sgd)
 
 
 #creating a spark context
