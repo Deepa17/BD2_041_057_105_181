@@ -66,7 +66,7 @@ days = {'Wednesday':0,'Tuesday':1,'Friday':2,'Thursday':3,
 'Saturday':4,'Monday':5,'Sunday':6}
 
 #classifier models
-nb = GaussianNB()
+nb = GaussianNB(priors = None, var_smoothing = 1e-04)
 sgd = linear_model.SGDClassifier()
 pac = linear_model.PassiveAggressiveClassifier()
 
@@ -193,7 +193,7 @@ def model_train(rdd):
     nb_acc = naive_bayes(X_train, X_test, y_train, y_test,classes,nb)
     stgd_acc = stgd(X_train, X_test, y_train, y_test,classes,sgd)
     pac_acc = passive_agg(X_train, X_test, y_train, y_test,classes,pac)
-    mbk_acc = minibatch(X_train, X_test, y_train, y_test, classes, pac)
+    mbk_acc = minibatch(X_train, X_test, y_train, y_test, classes,mbk)
 
     #writing the accuracies to a file
     file = open('acc.txt','a')
@@ -215,11 +215,11 @@ lines.foreachRDD( lambda rdd: model_train(rdd) )
 ssc.start()             
 
 #wait till over
-ssc.awaitTermination(timeout=100)
+ssc.awaitTermination(timeout=110)
 
 ssc.stop()
 
-#columns of test.csv
+#columns of train.csv
 #Date,Category,Descript,DayOfWeek,PdDistrict,Resolution,Address,X,Y
 
 
