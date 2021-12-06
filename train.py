@@ -63,13 +63,16 @@ days = {'Wednesday':0,'Tuesday':1,'Friday':2,'Thursday':3,
 #classifier models
 nb = GaussianNB()
 sgd = linear_model.SGDClassifier()
+pac = linear_model.PassiveAggressiveClassifier()
 
 #saving the final weights
 def save_model():
   filename = 'naive_bayes.sav'
   pickle.dump(nb, open(filename, 'wb'))
   filename = 'sgd.sav'
-  pickle.dump(nb, open(filename, 'wb'))
+  pickle.dump(sgd, open(filename, 'wb'))
+  filename = 'pac.sav'
+  pickle.dump(pac, open(filename, 'wb'))
 
 
 #splitting the data into test train set
@@ -89,8 +92,16 @@ def naive_bayes(X_train, X_test, y_train, y_test,classes,nb):
 #SGD classifier
 def stgd(X_train, X_test, y_train, y_test,classes,sgd):
   sgd.partial_fit(X_train,y_train,classes = classes)
-  y_pred = nb.predict(X_test)
+  y_pred = sgd.predict(X_test)
   print("SGD Classifier:")
+  acc = metrics(y_pred,y_test,classes)
+  return acc
+
+#passive aggressive classifier 
+def passive_agg(X_train, X_test, y_train, y_test, classes, pac):
+  pac.partial_fit(X_train,y_train,classes = classes)
+  y_pred = pac.predict(X_test)
+  print("Passive Aggressive Classifier:")
   acc = metrics(y_pred,y_test,classes)
   return acc
 
@@ -108,8 +119,6 @@ def metrics(y_pred,y_true,classes):
 def readStream(rdd) :
   #rdd.pprint()
   line = rdd.collect()
-  #print("line:",line)
-  #create a df
   df = spark.createDataFrame(data=json.loads(line[0]).values(), schema=schema)
 
   #encode the categorical variables
@@ -150,11 +159,12 @@ def model_train(rdd):
     #the models are trained and accuracy is obtained
     nb_acc = naive_bayes(X_train, X_test, y_train, y_test,classes,nb)
     stgd_acc = stgd(X_train, X_test, y_train, y_test,classes,sgd)
-    
+    pac_acc = passive_agg(X_train, X_test, y_train, y_test,classes,pac)
     #writing the accuracies to a file
     file = open('acc.txt','a')
-    file.write(str(nb_acc)+","+str(stgd_acc)+"\n")
+    file.write(str(nb_acc)+","+str(stgd_acc)+","+str(pac_acc)+"\n")
     file.close()
+    #saving the weights 
     save_model()
 
 #creating a spark context
@@ -170,11 +180,11 @@ lines.foreachRDD( lambda rdd: model_train(rdd) )
 ssc.start()             
 
 #wait till over
-ssc.awaitTermination(timeout=200)
+ssc.awaitTermination(timeout=500)
 
 ssc.stop()
 
-
-#,Category,Descript,DayOfWeek,PdDistrict,Resolution,Address,X,Y
+#columns of test.csv
+#Date,Category,Descript,DayOfWeek,PdDistrict,Resolution,Address,X,Y
 
 
