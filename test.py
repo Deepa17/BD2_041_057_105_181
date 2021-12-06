@@ -144,6 +144,6 @@ lines.foreachRDD( lambda rdd: test(rdd) )
 ssc.start()             
 
 #wait till over
-ssc.awaitTermination(timeout=100)
+ssc.awaitTermination(timeout=115)
 
 ssc.stop()
