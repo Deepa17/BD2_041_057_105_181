@@ -6,7 +6,7 @@ Our implementation mainly consists of two files, train.py and test.py. Data is r
 Train.py is used to perform all the required operations on the training data. Similarly, test.py is written to perform the required operations on test data. The batch size used is 50k. The models are saved in ‘.sav’ files, for loading up during testing. Since the data comes in streams, incremental learning is performed.
 <h4>Surface Level Implementation:</h4>
 <h5>Training the dataset: </h5>
-The datastream is iterated through and the following functions are run on each batch of rdds. The batch duration is set as 3 and the each of the RDD is obtained using the ‘foreachRDD’ function.
+The datastream is iterated through and the following functions are run on each batch of rdds. The batch duration is set as 3 and the each of the RDD is obtained using the ‘foreachRDD’ function.<br>
 •	readstream(rdd): This module reads the data from the stream and performs preprocessing. The schema of the incoming data is already specified. The data is converted to a dataframe from json format. The columns Category(here feature1) , District (feature4), Day (feature3). The date is converted to timestamp type and then the hour, month and the year are extracted. <br>
 •	x_y(rdd): The required features are extracted and they are divided into x and y respectively. The dataframe is converted to a numpy array to train the models. <br>
 •	model_train(rdd): This function trains all the models on the incoming batch and saves the model for the final predictions on the test set. <br>
@@ -15,7 +15,7 @@ The datastream is iterated through and the following functions are run on each b
 •	naïve_bayes(), stgd(),passive_agg(),minibatch() : Fitting the clustering and the classification models on the incoming batch data. <br>
 •	metrics(): The classification metrics like the classification report and the accuracy are printed.<br>
 <h5>Testing on the test set:</h5>
-foreachRDD is used to iterate through the datastream.
+foreachRDD is used to iterate through the datastream. <br>
 •	readStream(rdd): Works the same way as the readStream function of train.py. The category column is not present in the input stream. The id and the required dataframe are returned.<br>
 •	test(): Loads all the models and runs the predictions on each batch of the test data. The predictions are gathered in a list and converted to integer to decode the labels. These are merged along with the id of the crime to give the final output. <br>
 •	predictions(filename,df): Predicting the output on the test dataframe df. <br>
