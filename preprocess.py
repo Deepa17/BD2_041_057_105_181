@@ -8,6 +8,10 @@ from pyspark.sql import SparkSession
 import json
 import numpy as np
 
+import warnings
+warnings.filterwarnings('ignore')
+
+
 from pyspark.sql.functions import to_timestamp
 from pyspark.sql.functions import hour, month, year
 
@@ -58,6 +62,7 @@ days = {'Wednesday':0,'Tuesday':1,'Friday':2,'Thursday':3,
 'Saturday':4,'Monday':5,'Sunday':6}
 
 
+
 nb = GaussianNB()
 sgd = linear_model.SGDClassifier()
 
@@ -72,22 +77,25 @@ def naive_bayes(X_train, X_test, y_train, y_test,classes,nb):
   nb.partial_fit(X_train,y_train,classes = classes)
   y_pred = nb.predict(X_test)
   print("Naive Bayes:")
-  metrics(y_pred,y_test,classes)
+  acc = metrics(y_pred,y_test,classes)
+  return acc
 
 def stgd(X_train, X_test, y_train, y_test,classes,sgd):
   sgd.partial_fit(X_train,y_train,classes = classes)
   y_pred = nb.predict(X_test)
   print("SGD Classifier:")
-  metrics(y_pred,y_test,classes)
+  acc = metrics(y_pred,y_test,classes)
+  return acc
 
 #to return the metrics of the model 
 def metrics(y_pred,y_true,classes):
   from sklearn.metrics import accuracy_score
   from sklearn.metrics import classification_report
-
-  print("Accuracy: ",accuracy_score(y_pred,y_true))
+  acc = accuracy_score(y_pred,y_true)
+  print("Accuracy: ",acc)
   print("Classification_report:")
   print(classification_report(y_true,y_pred,labels = classes))
+  return acc
 
 #function to read the stream
 def readMyStream(rdd) :
@@ -129,9 +137,13 @@ def model_train(rdd):
     classes = [str(i) for i in range(39)]
     #print("classes: ",classes)
     X_train, X_test, y_train, y_test=test_train(X,y)
-    naive_bayes(X_train, X_test, y_train, y_test,classes,nb)
-    stgd(X_train, X_test, y_train, y_test,classes,sgd)
-
+    #acc_str = ""
+    nb_acc = naive_bayes(X_train, X_test, y_train, y_test,classes,nb)
+    stgd_acc = stgd(X_train, X_test, y_train, y_test,classes,sgd)
+    #acc_str = nb_acc+","+stgd_acc
+    file = open('accuracy.csv','a')
+    file.write("\n"+str(nb_acc)+","+str(stgd_acc))
+    file.close()
 
 #creating a spark context
 sc = SparkContext(appName="crime")
