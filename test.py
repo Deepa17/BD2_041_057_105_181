@@ -8,15 +8,16 @@ import json
 import numpy as np
 import pickle
 
+
 from pyspark.sql.functions import to_timestamp
 from pyspark.sql.functions import hour, month, year
 
-from pyspark.sql.functions import col , udf
+from pyspark.sql.functions import col , udf, monotonically_increasing_id
 
 import warnings
+warnings.filterwarnings('ignore')
 
 from sklearn import naive_bayes
-warnings.filterwarnings('ignore')
 
 schema = StructType([
     StructField("feature0",StringType()),
@@ -28,6 +29,11 @@ schema = StructType([
     StructField("feature6",DoubleType())
 ])
 
+op_schema = StructType([
+    StructField("id",StringType()),
+    StructField("nb",StringType()),
+    StructField("sgd",StringType())])
+
 district = {'MISSION':0,'BAYVIEW':1,'CENTRAL':2,'TARAVAL':3,
 'TENDERLOIN':4,'INGLESIDE':5,'PARK':6,'SOUTHERN':7,
 'RICHMOND':8,'NORTHERN':9}
@@ -38,7 +44,11 @@ days = {'Wednesday':0,'Tuesday':1,'Friday':2,'Thursday':3,
 def predictions(filename,df):
     loaded_model = pickle.load(open(filename, 'rb'))
     result = loaded_model.predict(df)
-    print(result)
+    #print(result)
+    return result
+    
+def datatype(lis,dtype = int):
+    return map(dtype,lis)
 
 def readMyStream(rdd) :
   #rdd.pprint()
@@ -58,19 +68,31 @@ def readMyStream(rdd) :
   cols = ['feature2','feature3','feature5','feature6','Hour','Month','Year']
   data = df.select([col for col in cols])
   #df = df.select['feature2','feature3','feature4','feature5','Hour','Month','Year']
-  return data
+  lis = df.select('feature0').rdd.flatMap(lambda x: x).collect()
+  return (data,lis)
 
 def test(rdd):
     if not rdd.isEmpty():
-        df = readMyStream(rdd)
-        df.show()
+        df,id = readMyStream(rdd)
+        #data,id1 = readMyStream(rdd)
+        #data.show()
         df = np.asarray(df.collect())
+        #res = []
         print("NaiveBayes:")
-        predictions("naive_bayes.sav",df)
+        nb_res = (list(predictions("naive_bayes.sav",df)))
         print("SGD:")
-        predictions("sgd.sav",df)
+        sgd_res = (list(predictions("sgd.sav",df)))
+        #print("here2")
+        nb_res = datatype(nb_res)
+        sgd_res = datatype(sgd_res)
+        res = list(zip(id,nb_res,sgd_res))
+        data = res
+        columns = ["id","NB","SGD"]
+        #print(res)
+        data1  = spark.createDataFrame(res,columns)
+        data1.show()
+        
 
-    
 
 #creating a spark context
 sc = SparkContext(appName="crime")
