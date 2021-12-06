@@ -1,4 +1,4 @@
-
+#!/usr/bin/python3
 #import the required packages
 from pyspark.sql.types import StructField, StructType, StringType,DoubleType,TimestampType
 from pyspark.sql import DataFrame
@@ -20,10 +20,15 @@ from pyspark.sql.functions import hour, month, year
 
 from pyspark.sql.functions import col , udf
 
-
+#training the models
+#classification
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn import linear_model
+
+#clustering
+from sklearn.cluster import MiniBatchKMeans, KMeans
+from sklearn.metrics.pairwise import pairwise_distances_argmin
 
 
 #schema of the json file(note: the field names have to be proper)
@@ -65,6 +70,15 @@ nb = GaussianNB()
 sgd = linear_model.SGDClassifier()
 pac = linear_model.PassiveAggressiveClassifier()
 
+#clustering
+iteration = 1
+batch_size = 100
+n_clusters = len(categories)
+
+# perform the mini batch K-means
+mbk = MiniBatchKMeans(init ='k-means++', n_clusters = n_clusters,
+                      batch_size = batch_size)
+
 #saving the final weights
 def save_model():
   filename = 'naive_bayes.sav'
@@ -73,6 +87,9 @@ def save_model():
   pickle.dump(sgd, open(filename, 'wb'))
   filename = 'pac.sav'
   pickle.dump(pac, open(filename, 'wb'))
+  filename = 'mbk.sav'
+  pickle.dump(mbk, open(filename, 'wb'))
+
 
 
 #splitting the data into test train set
@@ -85,7 +102,9 @@ def test_train(X,y):
 def naive_bayes(X_train, X_test, y_train, y_test,classes,nb):
   nb.partial_fit(X_train,y_train,classes = classes)
   y_pred = nb.predict(X_test)
-  print("Naive Bayes:")
+  print()
+  print()
+  print("-------------------- NAIVE BAYES --------------------")
   acc = metrics(y_pred,y_test,classes)
   return acc
 
@@ -93,7 +112,9 @@ def naive_bayes(X_train, X_test, y_train, y_test,classes,nb):
 def stgd(X_train, X_test, y_train, y_test,classes,sgd):
   sgd.partial_fit(X_train,y_train,classes = classes)
   y_pred = sgd.predict(X_test)
-  print("SGD Classifier:")
+  print()
+  print()
+  print("-------------------- SGD CLASSIFIER --------------------")
   acc = metrics(y_pred,y_test,classes)
   return acc
 
@@ -101,7 +122,19 @@ def stgd(X_train, X_test, y_train, y_test,classes,sgd):
 def passive_agg(X_train, X_test, y_train, y_test, classes, pac):
   pac.partial_fit(X_train,y_train,classes = classes)
   y_pred = pac.predict(X_test)
-  print("Passive Aggressive Classifier:")
+  print()
+  print()
+  print("-------------------- PASSIVE AGGRESSIVE CLASSIFIER --------------------")
+  acc = metrics(y_pred,y_test,classes)
+  return acc
+
+#clustering
+def minibatch(X_train, X_test, y_train, y_test, classes, mbb):
+  mbk.partial_fit(X_train,y_train)
+  y_pred = pac.predict(X_test)
+  print()
+  print()
+  print("-------------------- MINI BATCH KMEANS CLUSTERING --------------------")
   acc = metrics(y_pred,y_test,classes)
   return acc
 
@@ -160,9 +193,11 @@ def model_train(rdd):
     nb_acc = naive_bayes(X_train, X_test, y_train, y_test,classes,nb)
     stgd_acc = stgd(X_train, X_test, y_train, y_test,classes,sgd)
     pac_acc = passive_agg(X_train, X_test, y_train, y_test,classes,pac)
+    mbk_acc = minibatch(X_train, X_test, y_train, y_test, classes, pac)
+
     #writing the accuracies to a file
     file = open('acc.txt','a')
-    file.write(str(nb_acc)+","+str(stgd_acc)+","+str(pac_acc)+"\n")
+    file.write(str(nb_acc)+","+str(stgd_acc)+","+str(pac_acc)+","+str(mbk_acc)+"\n")
     file.close()
     #saving the weights 
     save_model()
@@ -180,7 +215,7 @@ lines.foreachRDD( lambda rdd: model_train(rdd) )
 ssc.start()             
 
 #wait till over
-ssc.awaitTermination(timeout=500)
+ssc.awaitTermination(timeout=100)
 
 ssc.stop()
 
