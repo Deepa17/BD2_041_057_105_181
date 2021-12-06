@@ -131,7 +131,6 @@ def test(rdd):
         data.show()
         
 
-
 #creating a spark context
 sc = SparkContext(appName="crime")
 ssc = StreamingContext(sc, batchDuration= 3)
