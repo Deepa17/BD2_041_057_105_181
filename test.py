@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 #import the required packages
 from pyspark.sql.types import StructField, StructType, StringType,DoubleType,TimestampType
 from pyspark.sql import DataFrame
@@ -95,31 +96,38 @@ def test(rdd):
         df = np.asarray(df.collect())
        
         #nb model
-        print("NaiveBayes:")
+        #print("NaiveBayes:")
         nb_res = (list(predictions("naive_bayes.sav",df)))
         
         #SGD
-        print("SGD:")
+        #print("SGD:")
         sgd_res = (list(predictions("sgd.sav",df)))
         
         #pac 
-        print("PAC:")
+        #print("PAC:")
         pac_res = (list(predictions("pac.sav",df)))
         
+        #mbk
+        mbk_res = (list(predictions("mbk.sav",df)))
+        #converting the observations to int datatype
         nb_res = datatype(nb_res)
         sgd_res = datatype(sgd_res)
         pac_res = datatype(pac_res)
-
-        res = list(zip(id,nb_res,sgd_res,pac_res))
+        mbk_res = datatype(mbk_res)
+        #zipping all the required columns for the dataframe
+        res = list(zip(id,nb_res,sgd_res,pac_res,mbk_res))
         data = res
-        columns = ["id","NB","SGD","PAC"]
+        columns = ["id","NB","SGD","PAC","MBK"]
         
-
+        #Getting the dataframe
         data = spark.createDataFrame(res,columns)
         categ_func = udf(lambda row : categories.get(row,row))
+
+        #decoding the encoded values
         data = data.withColumn("NB", categ_func(col("NB")))
         data = data.withColumn("SGD", categ_func(col("SGD")))
         data = data.withColumn("PAC", categ_func(col("PAC")))
+        data = data.withColumn("MBK", categ_func(col("MBK")))
         data.show()
         
 
@@ -137,6 +145,6 @@ lines.foreachRDD( lambda rdd: test(rdd) )
 ssc.start()             
 
 #wait till over
-ssc.awaitTermination(timeout=300)
+ssc.awaitTermination(timeout=100)
 
 ssc.stop()
